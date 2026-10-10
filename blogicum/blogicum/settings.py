@@ -6,7 +6,10 @@ SECRET_KEY = 'django-insecure-ls2r4*05vt_frdk1_$89sc8s6!)n6!0v3i)6p=!93=d2**#$18
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -85,5 +88,7 @@ STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
