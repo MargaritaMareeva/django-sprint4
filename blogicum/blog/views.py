@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView
 
 from .constants import POSTS_ON_PAGE
-from .forms import UserEditForm
+from .forms import PostForm, UserEditForm
 from .models import Category, Post
 
 User = get_user_model()
@@ -77,3 +77,14 @@ def edit_profile(request):
         form.save()
         return redirect('blog:profile', username=request.user.username)
     return render(request, 'blog/user.html', {'form': form})
+
+
+@login_required
+def create_post(request):
+    form = PostForm(request.POST or None, files=request.FILES or None)
+    if form.is_valid():
+        post = form.save(commit=False)
+        post.author = request.user
+        post.save()
+        return redirect('blog:profile', username=request.user.username)
+    return render(request, 'blog/create.html', {'form': form})
