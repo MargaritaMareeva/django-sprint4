@@ -149,3 +149,15 @@ def delete_comment(request, pk, comment_id):
         'blog/comment.html',
         {'comment': comment}
     )
+
+
+@login_required
+def delete_post(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    if post.author != request.user:
+        return redirect('blog:post_detail', pk=pk)
+    if request.method == 'POST':
+        post.delete()
+        return redirect('blog:profile', username=request.user.username)
+    form = PostForm(instance=post)
+    return render(request, 'blog/create.html', {'form': form})
