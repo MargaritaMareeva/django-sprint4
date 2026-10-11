@@ -4,8 +4,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView
 
 from .constants import POSTS_ON_PAGE
-from .forms import PostForm, UserEditForm
-from .models import Category, Post
+from .forms import PostForm, UserEditForm, CommentForm
+from .models import Category, Comment, Post
 
 User = get_user_model()
 
@@ -30,6 +30,8 @@ class PostDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['post'] = self.object
+        context['form'] = CommentForm()
+        context['comments'] = self.object.comments.all()
         return context
 
 
@@ -104,3 +106,46 @@ def edit_post(request, pk):
         form.save()
         return redirect('blog:post_detail', pk=pk)
     return render(request, 'blog/create.html', {'form': form})
+
+
+@login_required
+def add_comment(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    form = CommentForm(request.POST or None)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+    return redirect('blog:post_detail', pk=pk)
+
+
+@login_required
+def edit_comment(request, pk, comment_id):
+    comment = get_object_or_404(Comment, pk=comment_id, post_id=pk)
+    if comment.author != request.user:
+        return redirect('blog:post_detail', pk=pk)
+    form = CommentForm(request.POST or None, instance=comment)
+    if form.is_valid():
+        form.save()
+        return redirect('blog:post_detail', pk=pk)
+    return render(
+        request,
+        'blog/comment.html',
+        {'form': form, 'comment': comment}
+    )
+
+
+@login_required
+def delete_comment(request, pk, comment_id):
+    comment = get_object_or_404(Comment, pk=comment_id, post_id=pk)
+    if comment.author != request.user:
+        return redirect('blog:post_detail', pk=pk)
+    if request.method == 'POST':
+        comment.delete()
+        return redirect('blog:post_detail', pk=pk)
+    return render(
+        request,
+        'blog/comment.html',
+        {'comment': comment}
+    )

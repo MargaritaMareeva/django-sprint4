@@ -13,4 +13,6 @@ class PostQuerySet(models.QuerySet):
         )
 
     def with_related(self):
-        return self.select_related('location', 'author', 'category')
+        return self.select_related(
+            'location', 'author', 'category'
+        ).prefetch_related('comments')

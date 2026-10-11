@@ -99,3 +99,21 @@ class Post(PublishedModel):
         verbose_name_plural = 'Публикации'
         default_related_name = 'posts'
         ordering = ('-pub_date',)
+
+    @property
+    def comment_count(self):
+        return self.comments.count()
+
+
+class Comment(models.Model):
+    text = models.TextField('Текст комментария')
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name='comments',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ('created_at',)
