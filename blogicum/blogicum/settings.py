@@ -89,6 +89,10 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = BASE_DIR / 'media'
+
 CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
