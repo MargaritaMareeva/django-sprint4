@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
 from .constants import POSTS_ON_PAGE
@@ -25,13 +27,23 @@ class PostDetailView(DetailView):
     template_name = 'blog/detail.html'
 
     def get_queryset(self):
-        return Post.objects.published().with_related()
+        queryset = Post.objects.with_related()
+        if self.request.user.is_authenticated:
+            return queryset.filter(
+                Q(author=self.request.user)
+                | Q(
+                    is_published=True,
+                    pub_date__lte=timezone.now(),
+                    category__is_published=True,
+                )
+            )
+        return queryset.published()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['post'] = self.object
         context['form'] = CommentForm()
-        context['comments'] = self.object.comments.all()
+        context['comments'] = self.object.comments.select_related('author')
         return context
 
 
