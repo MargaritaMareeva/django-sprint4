@@ -109,7 +109,7 @@ class Post(PublishedModel):
         ordering = ('-pub_date',)
 
 
-class Comment(models.Model):
+class Comment(CreatedModel):
     text = models.TextField('Текст комментария')
     post = models.ForeignKey(
         Post,
