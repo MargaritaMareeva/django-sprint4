@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 
-from .models import Category, Location, Post
+from .models import Category, Comment, Location, Post
 
 User = get_user_model()
 
@@ -61,3 +61,11 @@ class PostAdmin(admin.ModelAdmin):
     list_filter = ('is_published', 'category', 'location')
     date_hierarchy = 'pub_date'
     list_select_related = ('author', 'category', 'location')
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = ('text', 'post', 'author', 'created_at')
+    search_fields = ('text',)
+    list_filter = ('created_at',)
+    list_select_related = ('post', 'author')
