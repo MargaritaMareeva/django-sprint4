@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
 from .constants import POSTS_ON_PAGE
-from .forms import PostForm, UserEditForm, CommentForm
+from .forms import CommentForm, PostForm, UserEditForm
 from .models import Category, Comment, Post
 
 User = get_user_model()
