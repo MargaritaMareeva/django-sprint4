@@ -1,8 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.views.generic import DetailView, ListView
 
 from .constants import POSTS_ON_PAGE
@@ -33,17 +32,7 @@ class PostDetailView(DetailView):
     pk_url_kwarg = 'post_id'
 
     def get_queryset(self):
-        queryset = Post.objects.with_related()
-        if self.request.user.is_authenticated:
-            return queryset.filter(
-                Q(author=self.request.user)
-                | Q(
-                    is_published=True,
-                    pub_date__lte=timezone.now(),
-                    category__is_published=True,
-                )
-            )
-        return queryset.published()
+        return Post.objects.with_related().available_to(self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -85,10 +74,14 @@ class ProfileListView(PaginatedListView):
             User,
             username=self.kwargs['username']
         )
+        queryset = Post.objects.filter(author=self.profile_user)
+        if self.request.user != self.profile_user:
+            queryset = queryset.published()
         return (
-            Post.objects.filter(author=self.profile_user)
-            .order_by('-pub_date')
+            queryset
+            .with_related()
             .annotate(comment_count=Count('comments'))
+            .order_by('-pub_date')
         )
 
     def get_context_data(self, **kwargs):
@@ -135,14 +128,23 @@ def edit_post(request, post_id):
 
 @login_required
 def add_comment(request, post_id):
-    post = get_object_or_404(Post, pk=post_id)
+    post = get_object_or_404(
+        Post.objects.available_to(request.user),
+        pk=post_id,
+    )
     form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)
         comment.author = request.user
         comment.post = post
         comment.save()
-    return redirect('blog:post_detail', post_id=post_id)
+        return redirect('blog:post_detail', post_id=post_id)
+    context = {
+        'post': post,
+        'form': form,
+        'comments': post.comments.select_related('author'),
+    }
+    return render(request, 'blog/detail.html', context)
 
 
 @login_required
