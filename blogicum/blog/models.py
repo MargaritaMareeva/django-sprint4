@@ -108,10 +108,6 @@ class Post(PublishedModel):
         default_related_name = 'posts'
         ordering = ('-pub_date',)
 
-    @property
-    def comment_count(self):
-        return self.comments.count()
-
 
 class Comment(models.Model):
     text = models.TextField('Текст комментария')
