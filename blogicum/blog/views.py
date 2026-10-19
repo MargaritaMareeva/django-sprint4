@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView
 
@@ -21,7 +20,7 @@ class PostListView(PaginatedListView):
     queryset = (
         Post.objects.published()
         .with_related()
-        .annotate(comment_count=Count('comments'))
+        .with_comment_count()
         .order_by('-pub_date')
     )
 
@@ -55,7 +54,7 @@ class CategoryPostListView(PaginatedListView):
         return (
             self.category.posts.published()
             .with_related()
-            .annotate(comment_count=Count('comments'))
+            .with_comment_count()
             .order_by('-pub_date')
         )
 
@@ -80,7 +79,7 @@ class ProfileListView(PaginatedListView):
         return (
             queryset
             .with_related()
-            .annotate(comment_count=Count('comments'))
+            .with_comment_count()
             .order_by('-pub_date')
         )
 
