@@ -7,20 +7,28 @@ from .querysets import PostQuerySet
 User = get_user_model()
 
 
-class PublishedModel(models.Model):
-    """Абстрактная модель с общими полями."""
+class CreatedModel(models.Model):
+    """Абстрактная модель с датой создания."""
 
-    is_published = models.BooleanField(
-        default=True,
-        verbose_name='Опубликовано',
-        help_text='Снимите галочку, чтобы скрыть публикацию.'
-    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Добавлено'
     )
 
     class Meta:
+        abstract = True
+
+
+class PublishedModel(CreatedModel):
+    """Абстрактная модель с флагом публикации."""
+
+    is_published = models.BooleanField(
+        default=True,
+        verbose_name='Опубликовано',
+        help_text='Снимите галочку, чтобы скрыть публикацию.'
+    )
+
+    class Meta(CreatedModel.Meta):
         abstract = True
 
 
