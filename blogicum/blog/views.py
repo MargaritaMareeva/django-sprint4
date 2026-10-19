@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.generic import DetailView, ListView
@@ -19,12 +19,18 @@ class PaginatedListView(ListView):
 class PostListView(PaginatedListView):
     model = Post
     template_name = 'blog/index.html'
-    queryset = Post.objects.published().with_related()
+    queryset = (
+        Post.objects.published()
+        .with_related()
+        .annotate(comment_count=Count('comments'))
+        .order_by('-pub_date')
+    )
 
 
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
+    pk_url_kwarg = 'post_id'
 
     def get_queryset(self):
         queryset = Post.objects.with_related()
@@ -57,7 +63,12 @@ class CategoryPostListView(PaginatedListView):
             slug=self.kwargs['category_slug'],
             is_published=True
         )
-        return self.category.posts.published().with_related()
+        return (
+            self.category.posts.published()
+            .with_related()
+            .annotate(comment_count=Count('comments'))
+            .order_by('-pub_date')
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -74,9 +85,11 @@ class ProfileListView(PaginatedListView):
             User,
             username=self.kwargs['username']
         )
-        return Post.objects.filter(
-            author=self.profile_user
-        ).order_by('-pub_date')
+        return (
+            Post.objects.filter(author=self.profile_user)
+            .order_by('-pub_date')
+            .annotate(comment_count=Count('comments'))
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -105,10 +118,10 @@ def create_post(request):
 
 
 @login_required
-def edit_post(request, pk):
-    post = get_object_or_404(Post, pk=pk)
+def edit_post(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
     if post.author != request.user:
-        return redirect('blog:post_detail', pk=pk)
+        return redirect('blog:post_detail', post_id=post_id)
     form = PostForm(
         request.POST or None,
         files=request.FILES or None,
@@ -116,31 +129,31 @@ def edit_post(request, pk):
     )
     if form.is_valid():
         form.save()
-        return redirect('blog:post_detail', pk=pk)
+        return redirect('blog:post_detail', post_id=post_id)
     return render(request, 'blog/create.html', {'form': form})
 
 
 @login_required
-def add_comment(request, pk):
-    post = get_object_or_404(Post, pk=pk)
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)
         comment.author = request.user
         comment.post = post
         comment.save()
-    return redirect('blog:post_detail', pk=pk)
+    return redirect('blog:post_detail', post_id=post_id)
 
 
 @login_required
-def edit_comment(request, pk, comment_id):
-    comment = get_object_or_404(Comment, pk=comment_id, post_id=pk)
+def edit_comment(request, post_id, comment_id):
+    comment = get_object_or_404(Comment, pk=comment_id, post_id=post_id)
     if comment.author != request.user:
-        return redirect('blog:post_detail', pk=pk)
+        return redirect('blog:post_detail', post_id=post_id)
     form = CommentForm(request.POST or None, instance=comment)
     if form.is_valid():
         form.save()
-        return redirect('blog:post_detail', pk=pk)
+        return redirect('blog:post_detail', post_id=post_id)
     return render(
         request,
         'blog/comment.html',
@@ -149,13 +162,13 @@ def edit_comment(request, pk, comment_id):
 
 
 @login_required
-def delete_comment(request, pk, comment_id):
-    comment = get_object_or_404(Comment, pk=comment_id, post_id=pk)
+def delete_comment(request, post_id, comment_id):
+    comment = get_object_or_404(Comment, pk=comment_id, post_id=post_id)
     if comment.author != request.user:
-        return redirect('blog:post_detail', pk=pk)
+        return redirect('blog:post_detail', post_id=post_id)
     if request.method == 'POST':
         comment.delete()
-        return redirect('blog:post_detail', pk=pk)
+        return redirect('blog:post_detail', post_id=post_id)
     return render(
         request,
         'blog/comment.html',
@@ -164,10 +177,10 @@ def delete_comment(request, pk, comment_id):
 
 
 @login_required
-def delete_post(request, pk):
-    post = get_object_or_404(Post, pk=pk)
+def delete_post(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
     if post.author != request.user:
-        return redirect('blog:post_detail', pk=pk)
+        return redirect('blog:post_detail', post_id=post_id)
     if request.method == 'POST':
         post.delete()
         return redirect('blog:profile', username=request.user.username)
