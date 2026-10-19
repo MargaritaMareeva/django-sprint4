@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.db.models import Count
 
 from .models import Category, Comment, Location, Post
 
@@ -20,9 +21,13 @@ class CustomUserAdmin(UserAdmin):
         'post_count',
     )
 
-    @admin.display(description='Количество постов')
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.annotate(_post_count=Count('posts'))
+
+    @admin.display(description='Количество постов', ordering='_post_count')
     def post_count(self, obj):
-        return obj.posts.count()
+        return obj._post_count
 
 
 admin.site.unregister(User)
